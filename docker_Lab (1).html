@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Docker Fundamentals Lab – Node.js Application</title>
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      line-height: 1.6;
+      margin: 40px;
+      background: #f9fafb;
+      color: #111827;
+    }
+    h1, h2, h3 {
+      color: #1f2937;
+    }
+    code{
+      overflow-x: auto;
+    }
+    pre {
+      background: #111827;
+      color: #f9fafb;
+      padding: 10px;
+      display: block;
+      overflow-x: auto;
+      border-radius: 6px;
+    }
+    .note {
+      background: #e0f2fe;
+      border-left: 5px solid #0284c7;
+      padding: 10px;
+      margin: 15px 0;
+    }
+    .important {
+      background: #fef3c7;
+      border-left: 5px solid #f59e0b;
+      padding: 10px;
+      margin: 15px 0;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>Docker Installation</h1>
+
+<hr>
+
+<h1>1. Install Docker</h1>
+
+<h2>Install Docker using DEB packages</h2>
+<p><a href = "https://download.docker.com/linux/ubuntu/dists/focal/pool/stable/amd64/"> docker deb files</a> download latest docker-ce, docker-ce-cli, containerd.io deb files</p>
+<p>copy all files into <strong>dockersw</strong> folder</p>
+
+<h3>Step 0: Go to Docker DEB directory</h3>
+<pre>
+cd dockersw
+</pre>
+
+<h3>Step 1: Install Docker using DEB packages</h3>
+<pre>
+sudo dpkg -i *.deb
+sudo apt --fix-broken install
+</pre>
+
+<h3>Step 2: Enable Docker to start on boot</h3>
+<pre>
+sudo systemctl enable --now docker
+</pre>
+
+<h3>Step 3: Verify Docker Installation</h3>
+<pre>
+docker --version
+</pre>
+<p>Check Docker CLI(Client) installation</p>
+
+<h3>Step 4: Check Docker service status</h3>
+<pre>
+sudo systemctl status docker
+</pre>
+<p>Check Docker daemon is running</p>
+
+<h3>Step 5: Add current user to docker group</h3>
+<pre>
+sudo usermod -aG docker $USER
+</pre>
+<p>After adding the user to the group, you can run Docker without <b>sudo</b>:</p>
+<h3>Step 6: Refresh shell session</h3>
+<p>Log out and log back in to apply group changes.</p>
+
+<h3>Step 7: Run test container</h3>
+<pre>
+docker run hello-world
+</pre>
+<p>It verifies that the Docker engine works and that containers can be executed without issues.</p>
+
+<h3>Step 8: Verify Docker is working</h3>
+<pre>
+docker ps
+</pre>
+<p>Shows the list of currently running containers on your system.</p>
+
+<div class="note">
+<b>Explanation:</b><br>
+This confirms Docker is running correctly and the Docker daemon is responsive.
+</div>
+
+<hr><hr><hr>
+
+<h1>Docker Images</h1>
+
+<hr>
+
+<h2>2: Pull Docker Image</h2>
+
+<h3>Step 1: Pull official Node.js 24 LTS Linux image</h3>
+
+<pre>
+docker pull node:24-bookworm-slim
+</pre>
+
+<h3>Step 2: Run Node inside container</h3>
+
+<pre>
+docker run -it node:24-bookworm-slim node -v
+</pre>
+
+<p>
+Expected output:
+</p>
+
+<pre>
+v24.x.x
+</pre>
+
+<div class="note">
+<b>Concept:</b><br>
+Node.js is running inside a Linux container without installing Node on the host system.
+</div>
+<h3>Step 3: Listing Docker Images</h3>
+<p>To view all downloaded images on your system, run:</p>
+<pre><code>docker images
+</code></pre>
+<p>This displays the image repository, tag, image ID, and size.</p>
+<hr>
+
+<h2>3: Create Node.js Application</h2>
+
+<h3>math.js</h3>
+
+<pre>
+function add(a, b) {
+  return a + b;
+}
+
+module.exports = add;
+</pre>
+
+<h3>app.js</h3>
+
+<pre>
+const add = require('./math');
+
+console.log("Sum:", add(2, 3));
+</pre>
+
+<h3>math.test.js</h3>
+
+<pre>
+const add = require('./math');
+
+test('adds 2 + 3 to equal 5', () => {
+  expect(add(2, 3)).toBe(5);
+});
+</pre>
+
+<h3>package.json</h3>
+
+<pre>
+{
+  "name": "my-node-app",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "start": "node app.js",
+    "test": "jest"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}
+</pre>
+
+<hr>
+
+<h2>4: Dockerfile Creation</h2>
+
+<h3>Dockerfile</h3>
+
+<pre>
+FROM node:24-bookworm-slim
+
+WORKDIR /app
+
+# Copy only package files first
+COPY package*.json ./
+
+# Install all dependencies (including jest)
+RUN npm install
+
+# Copy application source code
+COPY . .
+
+CMD ["npm", "start"]
+</pre>
+
+<div class="important">
+<b>Important:</b><br>
+The <code>FROM</code> instruction defines the Linux OS and Node.js runtime.
+Without it, the Docker image cannot be built.
+</div>
+
+<hr>
+
+<h2>5: Build Docker Image</h2>
+
+<pre>
+sudo docker build -t my-node-app .
+</pre>
+
+<p>
+This command creates a Docker image named <b>my-node-app</b>.
+</p>
+
+<hr>
+
+<!-- Slide: Verify Docker Image -->
+<div class="slide">
+    <h2>6: Verify the Docker Image</h2>
+    <p>List all Docker images available on your system:</p>
+
+    <pre>
+docker images
+    </pre>
+
+    <p>You will see <b>my-node-app</b> listed in the images table.</p>
+</div>
+
+<!-- Slide: Run Container from Image -->
+<div class="slide">
+    <h2>7: Running a Container from the Image</h2>
+    <p>Run your Docker image:</p>
+
+    <pre>
+sudo docker run --rm my-node-app
+    </pre>
+
+    <p>This executes the <code>CMD</code> instruction defined in the Dockerfile (<code>npm start</code>).</p>
+
+    <p>To start an interactive Node.js container shell:</p>
+
+    <pre>
+sudo docker run -it node:24-bookworm-slim /bin/bash
+    </pre>
+</div>
+
+<p>
+Expected output:
+</p>
+
+<pre>
+Sum: 5
+</pre>
+
+<div class="note">
+<b>Note:</b><br>
+The <code>--rm</code> option automatically removes the container after execution.
+</div>
+
+<hr>
+
+<h2>8: Run Tests Inside Docker Container</h2>
+
+<pre>
+sudo docker run --rm my-node-app npm test
+</pre>
+
+<p>
+Expected result:
+</p>
+
+<pre>
+PASS ./math.test.js
+✓ adds 2 + 3 to equal 5
+</pre>
+
+<div class="important">
+<b>Key Learning:</b><br>
+The same Docker image can be used to:
+<ul>
+  <li>Run the application</li>
+  <li>Run automated tests</li>
+</ul>
+No Node.js or Jest installation is required on the host system.
+</div>
+
+
+<!-- Slide: Viewing Running Containers -->
+<div class="slide">
+    <h2>9: Viewing Running Containers</h2>
+    <p>Show active containers:</p>
+
+    <pre>
+docker ps
+    </pre>
+
+    <p>Show all containers (including stopped):</p>
+
+    <pre>
+docker ps -a
+    </pre>
+</div>
+
+
+
+<!-- Slide: Pushing the Image to Docker Hub -->
+<div class="slide">
+    <h2>10: Pushing the Image to Docker Hub</h2>
+    <p>Login to Docker Hub:</p>
+
+    <pre>
+docker login
+    </pre>
+    <p>during the login process Let us assume I used my username as <b>laxmi916</b></p>
+</div>
+
+<!-- Slide: Tagging the Docker Image -->
+<div class="slide">
+    <h2>11: Tagging the Docker Image</h2>
+    <p>Tag your image before pushing to a registry:</p>
+
+    <pre>
+docker tag my-node-app yourUsername/my-node-app:v1
+    </pre>
+    <p> For example</p>
+        <pre>
+docker tag my-node-app laxmi916/my-node-app:v1
+    </pre>
+    <p>while tagging use <b>laxmi916(username)/my-node-app</b> as REPOSITORY</p>
+    
+    <p>Note: insted of laxmi916 use your username while tagging</p>
+
+    <p>This prepares the image for upload to Docker Hub or any container registry.</p>
+    <p>Push the tagged Node.js image:</p>
+
+    <pre>
+docker push laxmi916/my-node-app:v1
+    </pre>
+    
+</div>
+
+
+<h2>Conclusion</h2>
+
+<ul>
+  <li>Docker installed using DEB packages</li>
+  <li>Node.js 24 LTS used inside Linux containers</li>
+  <li>Created a Node.js application with proper structure (app, module, tests)</li>
+  <li>Built a Docker image using <code>node:24-bookworm-slim</code></li>
+  <li>Verified Docker images using <code>docker images</code></li>
+  <li>Ran the Node.js application inside Docker containers</li>
+  <li>Executed Jest tests inside Docker without host installation</li>
+  <li>Tagged Docker images for versioning</li>
+  <li>Pushed images to Docker Hub for distribution</li>
+  <li>Viewed and managed running/stopped containers using Docker commands</li>
+</ul>
+
+
+<p>
+This setup is now <b>CI/CD ready</b> and can be integrated with Jenkins.
+</p>
+
+<hr>
+<hr>
+<hr>
+<!-- Slide 1 -->
+<div class="slide">
+    <h1>Introduction to Docker Containers</h1>
+    <p>Docker containers enable applications to run in isolated and consistent environments across different systems. They help build, test, and deploy applications faster by eliminating compatibility issues.</p>
+</div>
+
+<!-- Slide 2 -->
+<div class="slide">
+    <h2>What is a Docker Container?</h2>
+    <p>A Docker container is a lightweight, standalone, executable package that includes:</p>
+    <ul>
+        <li>Application code</li>
+        <li>System tools</li>
+        <li>Runtime libraries</li>
+        <li>Configurations</li>
+    </ul>
+    <p>Unlike VMs, containers share the host OS kernel, making them faster and more efficient.</p>
+</div>
+
+<!-- Slide 3 -->
+<div class="slide">
+    <h2>Why Use Docker Containers?</h2>
+    <ul>
+        <li><strong>Portability:</strong> Runs anywhere Docker is installed.</li>
+        <li><strong>Consistency:</strong> Eliminates environment-specific issues.</li>
+        <li><strong>Efficiency:</strong> Uses fewer resources and starts faster.</li>
+        <li><strong>Scalability:</strong> Easily replicate and manage containers.</li>
+    </ul>
+</div>
+
+<!-- Slide 4 -->
+<div class="slide">
+    <h2>Using Nginx as Example</h2>
+    <p>We will use the Nginx web server image from Docker Hub to demonstrate container operations.</p>
+</div>
+
+<!-- Slide 5 -->
+<div class="slide">
+    <h2>Pulling an Nginx Image</h2>
+    <p>Download the Nginx image from Docker Hub:</p>
+    <pre>
+docker pull nginx
+    </pre>
+</div>
+
+<!-- Slide 6 -->
+<div class="slide">
+    <h2>Running an Nginx Container</h2>
+    <pre>
+docker run -d -p 8080:80 --name webserver nginx
+    </pre>
+    <p><strong>Explanation:</strong></p>
+    <ul>
+        <li><code>-d</code>: Detached mode</li>
+        <li><code>-p 8080:80</code>: Maps host 8080 → container 80</li>
+        <li><code>--name webserver</code>: Custom container name</li>
+    </ul>
+    <p>Open <code>http://localhost:8080</code> to see Nginx running.</p>
+</div>
+
+<!-- Slide 7 -->
+<div class="slide">
+    <h2>Serving Your Own Files</h2>
+    <h3>Step 1: Create HTML Files in your home directory</h3>
+    <pre>
+mkdir my-site
+echo "<h1>Hello from Nginx Container</h1>" > my-site/index.html
+    </pre>
+</div>
+<div class="slide">
+<h2>Step 2:Remove old webserver container</h2>
+<pre>docker rm -f webserver
+</pre>
+
+</div>
+<!-- Slide 8 -->
+<div class="slide">
+    <h2>Step 3: Serve Files Using Volume Mount</h2>
+    <pre>
+docker run -d -p 8080:80 --name webserver -v $(pwd)/my-site:/usr/share/nginx/html nginx
+    </pre>
+    <ul>
+  <li>
+    <code>-v $(pwd)/my-site:/usr/share/nginx/html</code> maps your local folder to Nginx’s web root.
+  </li>
+</ul>
+    <p>Your custom HTML is now served at <strong>http://localhost:8080</strong>.(do not use https)</p>
+</div>
+
+<!-- Slide 9 -->
+<div class="slide">
+    <h2>What is a Docker Volume?</h2>
+    <p>A volume allows data sharing between host and container.</p>
+    <ul>
+        <li>Use <code>-v host_directory:container_directory</code></li>
+        <li>Useful for serving files or persisting data</li>
+    </ul>
+</div>
+
+<!-- Slide 10 -->
+<div class="slide">
+    <h2>Container Lifecycle Commands</h2>
+    <pre>docker ps           # Running containers</pre>
+    <pre>docker ps -a       # All containers</pre>
+    <pre>docker stop webserver</pre>
+    <pre>docker start webserver</pre>
+    <pre>docker restart webserver</pre>
+</div>
+
+<!-- Slide 11 -->
+<div class="slide">
+    <h2>Access & Monitoring Commands</h2>
+    <pre>docker exec -it webserver bash</pre>
+    <pre>docker logs webserver</pre>
+    <pre>docker logs -f webserver</pre>
+    <pre>docker inspect webserver</pre>
+</div>
+
+<!-- Slide 12 -->
+<div class="slide">
+    <h2>Cleanup Commands</h2>
+    <pre>docker rm webserver</pre>
+    <pre>docker rm -f webserver</pre>
+    <pre>docker container prune</pre>
+</div>
+
+<!-- Slide 13 -->
+<div class="slide">
+    <h2>Conclusion</h2>
+    <p>Docker containers provide an efficient, portable, and isolated environment for running applications.</p>
+
+    <strong>Key Takeaways:</strong>
+    <ul>
+        <li>Containers ensure consistent deployment across systems</li>
+        <li>Easy to manage using commands like run, stop, start, rm</li>
+        <li>Supports live logs, shell access, and configuration inspection</li>
+        <li>Volumes help share and persist data</li>
+    </ul>
+
+    <p>Mastering containers is essential for modern cloud-native application development.</p>
+</div>
+
+
+<hr>
+<h1>Understanding Dockerfiles and Building Applications</h1>
+
+<p>
+A Dockerfile is a text file named <code>Dockerfile</code> (without extension) that contains 
+instructions to build Docker images. Each instruction defines a specific step such as choosing 
+a base image, installing packages, copying files, or defining how the container should start.
+Mastering Dockerfiles enables reproducible, automated, and efficient application deployments.
+</p>
+
+<h2>Why Use a Dockerfile?</h2>
+<p>A Dockerfile automates image creation and eliminates manual environment setup. Key benefits:</p>
+<ul>
+  <li><strong>Consistency</strong> across development, testing, and production</li>
+  <li><strong>Automation</strong> of all installation & configuration steps</li>
+  <li><strong>Version control</strong> for environments</li>
+  <li><strong>Portability</strong>—run anywhere using Docker</li>
+</ul>
+
+<h2>Dockerfile Syntax and Instructions</h2>
+<table>
+<tr><th>Instruction</th><th>Description</th></tr>
+<tr><td><code>FROM</code></td><td>Specifies base image</td></tr>
+<tr><td><code>RUN</code></td><td>Execute commands during image build</td></tr>
+<tr><td><code>COPY</code></td><td>Copy files into image</td></tr>
+<tr><td><code>ADD</code></td><td>Copy files (supports URLs, archives)</td></tr>
+<tr><td><code>CMD</code></td><td>Default command when container starts</td></tr>
+<tr><td><code>ENTRYPOINT</code></td><td>Defines executable container entry</td></tr>
+<tr><td><code>WORKDIR</code></td><td>Sets working directory</td></tr>
+<tr><td><code>ENV</code></td><td>Define environment variables</td></tr>
+<tr><td><code>EXPOSE</code></td><td>Document container port</td></tr>
+</table>
+
+<h2>Creating and Using a Dockerfile</h2>
+<p>Follow these steps to build and run images using Dockerfiles.</p>
+
+<h3>Step 1: Create a Dockerfile</h3>
+<p>Create a file named <code>Dockerfile</code> in your project root.</p>
+
+<h2>Complete Example: Node.js App (Node 24 – Bookworm Slim)</h2>
+
+<p>Below is a full Node.js web application demonstrating how Dockerfile works inside a real project.</p>
+
+<h3>📁 Project Folder Structure</h3>
+<pre><code>
+my-node-app/
+│
+├── package.json
+├── index.js
+├── routes/
+│   └── math.js
+├── tests/
+│   └── math.test.js
+├── Dockerfile
+└── README.md
+</code></pre>
+
+<h3>package.json</h3>
+<pre><code>{
+  "name": "my-node-app",
+  "version": "1.0.0",
+  "description": "Sample Node.js app to demonstrate Dockerfile usage",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node index.js",
+    "test": "jest"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}
+</code></pre>
+
+<h3>index.js</h3>
+<pre><code>
+const express = require("express");
+const add = require("./routes/math");
+
+const app = express();
+
+app.get("/", (req, res) => {
+  res.send("Welcome to Node.js Docker Demo App!");
+});
+
+app.get("/add", (req, res) => {
+  const result = add(5, 7);
+  res.json({ sum: result });
+});
+
+app.listen(3000, () => {
+  console.log("Server running on port 3000");
+});
+</code></pre>
+
+<h3>routes/math.js</h3>
+<pre><code>
+function add(a, b) {
+  return a + b;
+}
+module.exports = add;
+</code></pre>
+
+<h3>tests/math.test.js</h3>
+<pre><code>
+const add = require("../routes/math");
+
+test("adds 5 + 7 to equal 12", () => {
+  expect(add(5, 7)).toBe(12);
+});
+</code></pre>
+
+<h3>Dockerfile (Node 24 Bookworm Slim)</h3>
+<pre><code>
+FROM node:24-bookworm-slim
+WORKDIR /app
+COPY package.json ./
+RUN npm install
+COPY . .
+EXPOSE 3000
+CMD ["npm", "start"]
+</code></pre>
+
+<h3>Build and Run</h3>
+<p>Build image:</p>
+<pre><code>docker build -t my-node-app .</code></pre>
+
+<p>Run container:</p>
+<pre><code>docker run -p 3000:3000 my-node-app</code></pre>
+
+<p>Run tests inside Docker:</p>
+<pre><code>docker run --rm my-node-app npm test</code></pre>
+
+<hr/>
+
+<h2>Another Example: Python Flask App</h2>
+
+<p>Here’s the Flask version for comparison:</p>
+
+<h3>Dockerfile for Flask App</h3>
+<pre><code>
+FROM python:3.10
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY . .
+EXPOSE 5000
+CMD ["python", "app.py"]
+</code></pre>
+
+<h3>Build & Run</h3>
+<pre><code>docker build -t my-flask-app .</code></pre>
+<pre><code>docker run -p 5000:5000 my-flask-app</code></pre>
+
+<hr/>
+
+<h2>Conclusion</h2>
+<ul>
+  <li>We explored how Dockerfiles automate creating repeatable environments.</li>
+  <li>A complete Node.js app was built using the <strong>node:24-bookworm-slim</strong> base image.</li>
+  <li>We ran the application and tests inside Docker without installing Node on the host.</li>
+  <li>A Python Flask example demonstrated how Docker supports multiple languages.</li>
+  <li>Dockerfiles provide consistent, portable, isolated environments for modern applications.</li>
+</ul>
+
+</body>
+</html>
+
